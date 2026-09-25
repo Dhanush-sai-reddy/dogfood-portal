@@ -6,16 +6,15 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.config import Settings
 from app.db import get_db
 from app.models import ROLES, User
-from app.security import resolve_session
+from app.security import COOKIE_NAME, resolve_session
 
 DbSession = Annotated[Session, Depends(get_db)]
 
 
 def current_session(request: Request, db: DbSession) -> User | None:
-    return resolve_session(db, request.cookies.get(Settings.from_env().cookie_name))
+    return resolve_session(db, request.cookies.get(COOKIE_NAME))
 
 
 def require_user(request: Request, db: DbSession) -> User:
@@ -42,6 +41,11 @@ def require_role(*roles: str) -> Callable[..., User]:
             )
         return user
 
+    # `Depends(require_role(...))` records the closure this factory returns as the
+    # route's dependant call, never the factory itself, so the route walk in
+    # `tests/test_deps_isolation.py` recognises a guard by this marker instead of by
+    # identity. The roles ride along so a guard that admits the wrong one is caught.
+    dependency.__role_guard__ = frozenset(roles)
     return dependency
 
 
