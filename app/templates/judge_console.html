@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Judging · DOGFOOD{% endblock %}
+{% block content %}
+<h1>Your assignments</h1>
+<table class="grid">
+  <caption class="muted">
+    {% for criterion in rubric %}
+      {{ criterion.label }} (weight {{ criterion.weight }}, max {{ criterion.max_score }}){% if not loop.last %},{% endif %}
+    {% endfor %}
+  </caption>
+  <thead>
+    <tr><th>Project</th>{% for criterion in rubric %}<th>{{ criterion.label }}</th>{% endfor %}<th>Comment</th><th>State</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <td><a href="/projects/{{ row.project_id }}">{{ row.title }}</a></td>
+        {% for criterion in rubric %}
+          <td>
+            <input form="f-{{ row.project_id }}" type="number" min="1" max="{{ criterion.max_score }}"
+                   name="{{ criterion.key }}"
+                   value="{{ row.criteria.get(criterion.key, '') }}">
+          </td>
+        {% endfor %}
+        <td><input form="f-{{ row.project_id }}" type="text" name="comment"
+                   value="{{ row.comment or '' }}"></td>
+        <td>
+          <form method="post" action="/judge/score" id="f-{{ row.project_id }}">
+            <input type="hidden" name="project_id" value="{{ row.project_id }}">
+            <button type="submit">Save</button>
+          </form>
+          <span class="meta">{{ row.status }}</span>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="hint">Only your own scores are visible here, and only for your tracks. That is
+   enforced in the query, not in this template.</p>
+{% endblock %}

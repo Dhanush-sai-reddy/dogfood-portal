@@ -19,7 +19,11 @@ ROLES = ["organizer", "admin", "judge", "participant"]
 # The roles each guarded route admits, written down here so a guard that drifts from
 # its route's policy fails a test instead of surprising whoever reads the route later.
 # Every task that adds a route under a guarded prefix adds its line.
-EXPECTED_ROLES: dict[str, frozenset[str]] = {}
+EXPECTED_ROLES: dict[str, frozenset[str]] = {
+    "/api/judge/scores": frozenset({"judge"}),
+    "/judge": frozenset({"judge"}),
+    "/judge/score": frozenset({"judge"}),
+}
 
 
 def _iter_dependants(dependant):

@@ -19,3 +19,6 @@ button { cursor: pointer; }
 .meta, .muted, .hint { opacity: .65; font-size: .85rem; }
 .error { border: 1px solid #c33; color: #c33; background: #c3311a22; padding: .5rem .75rem; border-radius: .35rem; }
 .pager { display: flex; gap: 1rem; margin-top: 1rem; }
+.grid { width: 100%; border-collapse: collapse; }
+.grid caption { text-align: left; padding-bottom: .5rem; }
+.grid th, .grid td { border-bottom: 1px solid var(--line); padding: .4rem .5rem; text-align: left; vertical-align: top; }

@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     from fastapi.staticfiles import StaticFiles
 
-    from app.routers import auth, gallery, projects
+    from app.routers import auth, gallery, judge, projects
 
     application.mount(
         "/static", StaticFiles(directory=str(REPO_ROOT / "app" / "static")), name="static"
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     # `/projects/{project_id}/edit` could not collide either way.
     application.include_router(projects.router)
     application.include_router(gallery.router)
+    application.include_router(judge.router)
     return application
 
 
