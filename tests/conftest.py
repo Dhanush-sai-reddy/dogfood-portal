@@ -18,17 +18,13 @@ def live():
     from app.db import create_engine_for_tests
     from app.main import create_app
     from app.models import Base
-    from app.seed import (
-        apply_fixture_sessions, apply_reference_data, augment_assignments, load_fixture,
-    )
+    from app.seed import ensure_seeded
     import app.db as db_module
 
     engine, factory = create_engine_for_tests()
     Base.metadata.create_all(engine)
     with factory() as db:
-        apply_reference_data(db, load_fixture())
-        augment_assignments(db)
-        apply_fixture_sessions(db)
+        ensure_seeded(db)
         db.commit()
 
     original = db_module.SessionLocal
