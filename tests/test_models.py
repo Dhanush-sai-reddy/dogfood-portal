@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.db import create_engine_for_tests
 from app.models import (
     AUDIT_TRIGGERS, Assignment, AuditLog, Base, Event, Project, Score, Team,
-    Track, User,
+    Track, User, utcnow,
 )
 
 NOW = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
@@ -102,3 +102,83 @@ def test_audit_log_is_append_only():
         db.rollback()
 
         assert db.scalars(select(AuditLog)).one().action == "create"
+
+
+def test_datetime_from_the_database_compares_against_utcnow(session):
+    """The regression the `UtcDateTime` column type exists to prevent.
+
+    SQLite stores no timezone, so before the decorator every one of the twelve
+    datetime columns read back naive and each deadline check raised
+    `TypeError: can't compare offset-naive and offset-aware datetimes`. The
+    comparison is the assertion, so an unfixed column type fails here instead of
+    at some later task's call site.
+    """
+    session.expire_all()
+
+    submitted_at = session.get(Project, "prj_01").submitted_at
+
+    assert submitted_at.tzinfo is not None
+    assert submitted_at < utcnow()
+    assert utcnow() - submitted_at > dt.timedelta(0)
+
+
+def test_aware_datetime_reads_back_aware_in_utc_and_equal(session):
+    session.expire_all()
+
+    read = session.get(Project, "prj_01").submitted_at
+
+    assert read.tzinfo is dt.timezone.utc
+    assert read == NOW
+
+
+def test_aware_datetime_in_another_offset_is_stored_as_its_utc_instant(session):
+    plus_0530 = dt.timezone(dt.timedelta(hours=5, minutes=30))
+    local = dt.datetime(2026, 5, 4, 18, 0, tzinfo=plus_0530)
+    session.add(Project(id="prj_tz", team_id="tm_01", track_id="trk_01", title="Z",
+                        summary="s", submitted_at=local, updated_at=NOW))
+    session.commit()
+    session.expire_all()
+
+    read = session.get(Project, "prj_tz").submitted_at
+
+    assert read == local
+    assert read == dt.datetime(2026, 5, 4, 12, 30, tzinfo=dt.timezone.utc)
+
+
+def test_naive_datetime_reads_back_as_utc_and_is_neither_rejected_nor_shifted(session):
+    naive = dt.datetime(2026, 5, 4, 12, 30, 45, 123456)
+    session.add(Project(id="prj_naive", team_id="tm_01", track_id="trk_01", title="N",
+                        summary="s", submitted_at=naive, updated_at=NOW))
+    session.commit()
+    session.expire_all()
+
+    read = session.get(Project, "prj_naive").submitted_at
+
+    assert read == naive.replace(tzinfo=dt.timezone.utc)
+    assert read.tzinfo is dt.timezone.utc
+
+
+def test_null_datetime_round_trips_as_none(session):
+    session.add(Project(id="prj_null", team_id="tm_01", track_id="trk_01", title="N",
+                        summary="s", submitted_at=None, updated_at=NOW))
+    session.commit()
+    session.expire_all()
+
+    assert session.get(Project, "prj_null").submitted_at is None
+
+
+def test_datetime_is_stored_as_the_plain_naive_string_sqlite_expects(session):
+    """The on-disk format is a contract: the acceptance tool and the seeded
+    fixtures both read what SQLite already wrote, so the decorator must not
+    introduce a format of its own."""
+    session.add(Project(id="prj_raw", team_id="tm_01", track_id="trk_01", title="R",
+                        summary="s",
+                        submitted_at=dt.datetime(2026, 5, 4, 12, 30, 45, 123456),
+                        updated_at=NOW))
+    session.commit()
+
+    stored = session.execute(
+        text("SELECT submitted_at FROM projects WHERE id = 'prj_raw'")
+    ).scalar_one()
+
+    assert stored == "2026-05-04 12:30:45.123456"

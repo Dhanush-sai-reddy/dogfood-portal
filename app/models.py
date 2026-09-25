@@ -4,7 +4,8 @@ import datetime as dt
 from typing import Any
 
 from sqlalchemy import (
-    JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint,
+    JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, TypeDecorator,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -21,6 +22,44 @@ def utcnow() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+class UtcDateTime(TypeDecorator):
+    """A datetime column that always reads back as an aware UTC value.
+
+    SQLite has no native timezone storage, so a plain `DateTime(timezone=True)`
+    hands back naive datetimes. Comparing one of those against `utcnow()` then
+    raises `TypeError: can't compare offset-naive and offset-aware datetimes`,
+    and twelve columns across eight tables have that shape: session expiry,
+    submission deadlines and audit ordering among them. Converting once, here,
+    is what keeps every call site free of a guard.
+
+    Storage is unchanged. A naive value is written as it is, on the convention
+    that it is already UTC, and an aware one is converted to UTC before its
+    tzinfo is dropped, so the text on disk stays the plain
+    `YYYY-MM-DD HH:MM:SS.ffffff` that SQLite already wrote.
+    """
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(
+        self, value: dt.datetime | None, dialect
+    ) -> dt.datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(dt.timezone.utc).replace(tzinfo=None)
+
+    def process_result_value(
+        self, value: dt.datetime | None, dialect
+    ) -> dt.datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value.astimezone(dt.timezone.utc)
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -30,7 +69,7 @@ class Event(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    submissions_close: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    submissions_close: Mapped[dt.datetime] = mapped_column(UtcDateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
 
     def is_open(self, at: dt.datetime | None = None) -> bool:
@@ -58,7 +97,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(120), nullable=False)
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     org: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 class SessionRow(Base):
@@ -67,9 +106,9 @@ class SessionRow(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
-    expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
     user: Mapped[User] = relationship(lazy="joined")
 
@@ -97,7 +136,7 @@ class TeamMember(Base):
 
     team_id: Mapped[str] = mapped_column(ForeignKey("teams.id"), primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    joined_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    joined_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
     team: Mapped[Team] = relationship(back_populates="members")
 
@@ -112,8 +151,8 @@ class Project(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
     repo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_draft: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    submitted_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    submitted_at: Mapped[dt.datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    updated_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 class RubricCriterion(Base):
@@ -137,7 +176,7 @@ class Assignment(Base):
     judge_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
-    assigned_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    assigned_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 class Score(Base):
@@ -149,8 +188,8 @@ class Score(Base):
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
     criteria: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
+    updated_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 class AuditLog(Base):
@@ -163,7 +202,7 @@ class AuditLog(Base):
     entity_id: Mapped[str] = mapped_column(String(64), nullable=False)
     before_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     after_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 class SeedState(Base):
@@ -171,7 +210,7 @@ class SeedState(Base):
 
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     checksum: Mapped[str] = mapped_column(String(64), nullable=False)
-    applied_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    applied_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 AUDIT_TRIGGERS = (
