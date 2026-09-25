@@ -8,6 +8,7 @@ from starlette.responses import Response
 from app.db import create_engine_for_tests
 from app.models import Base, SessionRow, User
 from app.security import (
+    COOKIE_NAME,
     DEMO_PASSWORD,
     DEMO_PASSWORD_HASH,
     assert_same_origin,
@@ -92,7 +93,7 @@ def test_cookie_is_httponly_secure_and_lax():
     response = Response()
     set_session_cookie(response, "tok_abc", secure=True)
     header = response.headers["set-cookie"]
-    assert "sid=tok_abc" in header
+    assert f"{COOKIE_NAME}=tok_abc" in header
     assert "HttpOnly" in header
     assert "Secure" in header
     assert "samesite=lax" in header.lower()
@@ -102,8 +103,8 @@ def test_clear_cookie_removes_the_cookie():
     response = Response()
     clear_session_cookie(response)
     header = response.headers["set-cookie"]
-    assert "sid=" in header
-    assert "Max-Age=0" in header or 'sid=""' in header
+    assert f"{COOKIE_NAME}=" in header
+    assert "Max-Age=0" in header or f'{COOKIE_NAME}=""' in header
 
 
 def _post(headers: dict[bytes, bytes]) -> Request:
@@ -127,4 +128,21 @@ def test_same_origin_allows_a_missing_origin():
 def test_same_origin_refuses_a_foreign_origin():
     with pytest.raises(HTTPException) as excinfo:
         assert_same_origin(_post({b"host": b"localhost:8080", b"origin": b"https://evil.example"}))
+    assert excinfo.value.status_code == 403
+
+
+def test_same_origin_refuses_a_null_origin():
+    # Browsers send `Origin: null` from sandboxed iframes, file:// pages, data: URLs
+    # and cross-origin redirects. It parses to an empty netloc, so a guard that
+    # tolerates an empty netloc waves every one of those through.
+    with pytest.raises(HTTPException) as excinfo:
+        assert_same_origin(_post({b"host": b"localhost:8080", b"origin": b"null"}))
+    assert excinfo.value.status_code == 403
+
+
+def test_same_origin_refuses_an_origin_it_cannot_verify():
+    # A present Origin with no Host is as unverifiable as `null` is, and must be
+    # refused for the same reason rather than waved through a missing conjunct.
+    with pytest.raises(HTTPException) as excinfo:
+        assert_same_origin(_post({b"origin": b"https://evil.example"}))
     assert excinfo.value.status_code == 403

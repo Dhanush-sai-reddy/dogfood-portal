@@ -90,10 +90,20 @@ def clear_session_cookie(response: Response) -> None:
 
 
 def assert_same_origin(request: Request) -> None:
+    """Refuse a request whose `Origin` is present and does not match `Host`.
+
+    The invariant is one-directional: no `Origin` means the request is treated as
+    same-origin (a CLI client sends none, and the cookie's SameSite=Lax covers the
+    browser), but a present `Origin` must be verifiable: a `Host` header has to
+    exist and its netloc has to match it. `Origin: null`, which browsers send from
+    sandboxed iframes, `file://` pages and `data:` URLs, parses to an empty netloc
+    and is therefore not verifiable; refusing it is the point. Anything less than
+    fail-closed here leaves the gate contributing nothing on exactly the requests
+    it exists to catch.
+    """
     origin = request.headers.get("origin")
     if not origin:
         return
     host = request.headers.get("host", "")
-    netloc = urlsplit(origin).netloc
-    if netloc and host and netloc != host:
+    if not host or urlsplit(origin).netloc != host:
         raise HTTPException(status_code=403, detail="cross-origin request refused")
