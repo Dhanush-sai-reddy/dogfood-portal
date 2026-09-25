@@ -354,10 +354,18 @@ def augment_assignments(
                 and load.get(judge_id, 0) < judge_capacity.get(judge_id, capacity)
             ]
             if not eligible:
+                # Dropping the team rule is not permission to re-pick a judge who
+                # already reviews this project. `pairs.add` would silently no-op
+                # on a pair already in the set while the counters below advanced
+                # anyway, so the project would never reach its target and the
+                # report would describe the loop's intent rather than the data.
+                # The strict branch above needs no such guard: a judge already on
+                # the project has necessarily already seen its team.
                 eligible = [
                     judge_id
                     for judge_id, tracks in judge_tracks.items()
                     if track_id in tracks
+                    and (judge_id, project_id) not in pairs
                     and load.get(judge_id, 0) < judge_capacity.get(judge_id, capacity)
                 ]
                 if not eligible:
@@ -388,31 +396,50 @@ def augment_assignments(
         )
     db.flush()
 
-    team_conflicts: list[str] = []
-    for judge_id, project_ids in per_judge.items():
-        by_team: dict[str, list[str]] = {}
-        for _, project_id in pairs:
-            if _ != judge_id:
-                continue
-            by_team.setdefault(team_of[project_id], []).append(project_id)
-        for team_id, members in sorted(by_team.items()):
-            if len(members) > 1:
-                team_conflicts.append(f"{judge_id} sees {team_id} twice")
+    # Read the result back rather than trusting the loop's own arithmetic. Every
+    # field below makes a claim about the stored rows, so a bug in the fill
+    # cannot make the report overstate what it achieved -- a report that
+    # overstates its own success is the failure this whole task exists to
+    # prevent. `added` and `relaxations` stay counters, because those describe
+    # what the algorithm did rather than what it produced.
+    stored_pairs = {
+        (row.judge_id, row.project_id) for row in db.scalars(select(Assignment)).all()
+    }
+    review_counts: dict[str, int] = {project_id: 0 for project_id in team_of}
+    stored_load: dict[str, int] = {}
+    teams_by_judge: dict[str, dict[str, list[str]]] = {}
+    for judge_id, project_id in sorted(stored_pairs):
+        review_counts[project_id] = review_counts.get(project_id, 0) + 1
+        stored_load[judge_id] = stored_load.get(judge_id, 0) + 1
+        teams_by_judge.setdefault(judge_id, {}).setdefault(team_of[project_id], []).append(
+            project_id
+        )
 
+    # Sorted, because `stored_pairs` and the dicts built from it iterate in an
+    # order that depends on string hashing. A pinned seed fixes the shuffle, not
+    # that, and a report whose ordering varies between interpreters is not
+    # reproducible either.
+    team_conflicts = sorted(
+        f"{judge_id} sees {team_id} twice"
+        for judge_id, by_team in teams_by_judge.items()
+        for team_id, members in by_team.items()
+        if len(members) > 1
+    )
     over_capacity = [
-        f"{judge_id} has {count} projects (capacity {judge_capacity.get(judge_id, capacity)})"
-        for judge_id, count in sorted(load.items())
-        if count > judge_capacity.get(judge_id, capacity)
+        f"{judge_id} has {stored_load[judge_id]} projects "
+        f"(capacity {judge_capacity.get(judge_id, capacity)})"
+        for judge_id in sorted(stored_load)
+        if stored_load[judge_id] > judge_capacity.get(judge_id, capacity)
     ]
     orphaned_scores = sorted(
-        f"{judge_id}/{project_id}" for judge_id, project_id in score_pairs - pairs
+        f"{judge_id}/{project_id}" for judge_id, project_id in score_pairs - stored_pairs
     )
 
     return AssignmentReport(
         added=added,
-        total=len(pairs),
-        min_reviews=min(reviews.values()),
-        max_reviews=max(reviews.values()),
+        total=len(stored_pairs),
+        min_reviews=min(review_counts.values()),
+        max_reviews=max(review_counts.values()),
         relaxations=relaxations,
         team_conflicts=team_conflicts,
         over_capacity=over_capacity,

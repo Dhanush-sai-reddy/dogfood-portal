@@ -198,7 +198,7 @@ def test_ensure_seeded_applies_the_vendored_fixture_once(db):
     # from the fixture's scores. `apply_reference_data` alone still creates
     # none, which `test_reference_data_creates_no_assignments_sessions_or_audit_rows`
     # still pins.
-    assert _count(db, Assignment) == 131
+    assert _count(db, Assignment) == 133
     assert db.get(SeedState, "fixtures").checksum == fixture_checksum(load_fixture())
     # A second boot on the same fixture is a no-op, not a second application.
     assert ensure_seeded(db) is False
@@ -206,7 +206,7 @@ def test_ensure_seeded_applies_the_vendored_fixture_once(db):
     assert _count(db, Project) == 41
     assert _count(db, Score) == 126
     assert _count(db, SessionRow) == 4
-    assert _count(db, Assignment) == 131
+    assert _count(db, Assignment) == 133
 
 
 def test_ensure_seeded_reapplies_when_the_fixture_content_changes(db):
