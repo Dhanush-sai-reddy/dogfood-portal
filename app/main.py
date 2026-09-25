@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.config import Settings
+from app.config import REPO_ROOT, Settings
 from app.routers import health
 
 logger = logging.getLogger("dogfood")
@@ -30,6 +30,14 @@ def create_app() -> FastAPI:
     )
     application.state.settings = Settings.from_env()
     application.include_router(health.router)
+    from fastapi.staticfiles import StaticFiles
+
+    from app.routers import auth
+
+    application.mount(
+        "/static", StaticFiles(directory=str(REPO_ROOT / "app" / "static")), name="static"
+    )
+    application.include_router(auth.router)
     return application
 
 
