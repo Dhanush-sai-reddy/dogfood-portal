@@ -15,6 +15,9 @@ logger = logging.getLogger("dogfood")
 async def lifespan(application: FastAPI):
     settings: Settings = application.state.settings
     logger.info("database %s", settings.database_url)
+    from app.db import init_db
+
+    init_db()
     yield
     logger.info("stopped")
 
