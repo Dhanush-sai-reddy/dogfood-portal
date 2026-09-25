@@ -19,6 +19,9 @@ def session():
     Base.metadata.create_all(engine)
     with factory() as db:
         db.add(Event(id="evt_01", name="E", submissions_close=NOW, status="active"))
+        # Tracks and teams both point at the event, so land it first rather than
+        # leaning on `Event` sorting ahead of them by class name.
+        db.flush()
         db.add(Track(id="trk_01", name="T", event_id="evt_01"))
         db.add(Team(id="tm_01", name="T", event_id="evt_01"))
         db.add(User(id="jdg_01", email="j@example.org", name="J",

@@ -52,6 +52,13 @@ def create_engine_for_tests() -> tuple[Engine, sessionmaker[Session]]:
         future=True,
     )
     event.listen(test_engine, "connect", configure_sqlite)
+    # The trigger DDL needs `audit_log` to exist first, and it is repeated from
+    # `init_db` rather than shared: a named installer belongs to the task that
+    # formalises it, not to this harness.
+    Base.metadata.create_all(test_engine)
+    with test_engine.begin() as conn:
+        for statement in AUDIT_TRIGGERS:
+            conn.execute(text(statement))
     return test_engine, sessionmaker(bind=test_engine, autoflush=False, expire_on_commit=False)
 
 
