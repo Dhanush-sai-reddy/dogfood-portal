@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ project.title }} · DOGFOOD{% endblock %}
+{% block content %}
+<h1>Edit {{ project.title }}</h1>
+{% if closed %}
+  <p class="error" role="alert">The deadline has passed, so this edit will be refused.</p>
+{% endif %}
+<form method="post" action="/projects/{{ project.id }}/edit" class="stack">
+  <label>Title <input type="text" name="title" required minlength="3" maxlength="200"
+    value="{{ form.title }}"></label>
+  <label>Summary <textarea name="summary" rows="4" maxlength="4000">{{ form.summary }}</textarea></label>
+  <label>Track
+    <select name="track_id">
+      {% for track_id, track_name in tracks %}
+        <option value="{{ track_id }}" {% if form.track_id == track_id %}selected{% endif %}>{{ track_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Repository <input type="url" name="repo_url" value="{{ form.repo_url }}"></label>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

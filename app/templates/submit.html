@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Submit a project · DOGFOOD{% endblock %}
+{% block content %}
+<h1>Submit a project</h1>
+{% if closed %}
+  <p class="error" role="alert">Submissions are closed. The portal still shows the form,
+     but the backend refuses the post, which is the point.</p>
+{% endif %}
+<form method="post" action="/projects/new" class="stack">
+  <label>Title <input type="text" name="title" required minlength="3" maxlength="200"
+    value="{{ form.title or '' }}"></label>
+  <label>Summary <textarea name="summary" rows="4" maxlength="4000">{{ form.summary or '' }}</textarea></label>
+  <label>Track
+    <select name="track_id">
+      {% for track_id, track_name in tracks %}
+        <option value="{{ track_id }}" {% if form.track_id == track_id %}selected{% endif %}>{{ track_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Repository <input type="url" name="repo_url" value="{{ form.repo_url or '' }}"></label>
+  <button type="submit">Submit</button>
+</form>
+{% endblock %}

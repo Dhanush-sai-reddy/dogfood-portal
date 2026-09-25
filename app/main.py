@@ -32,12 +32,17 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     from fastapi.staticfiles import StaticFiles
 
-    from app.routers import auth, gallery
+    from app.routers import auth, gallery, projects
 
     application.mount(
         "/static", StaticFiles(directory=str(REPO_ROOT / "app" / "static")), name="static"
     )
     application.include_router(auth.router)
+    # Before the gallery, because the first match wins and the gallery's
+    # `GET /projects/{project_id}` would otherwise answer `/projects/new` with a
+    # project whose id is the literal string "new". Three segments, so
+    # `/projects/{project_id}/edit` could not collide either way.
+    application.include_router(projects.router)
     application.include_router(gallery.router)
     return application
 
