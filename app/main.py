@@ -32,12 +32,13 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     from fastapi.staticfiles import StaticFiles
 
-    from app.routers import auth
+    from app.routers import auth, gallery
 
     application.mount(
         "/static", StaticFiles(directory=str(REPO_ROOT / "app" / "static")), name="static"
     )
     application.include_router(auth.router)
+    application.include_router(gallery.router)
     return application
 
 
