@@ -6,3 +6,14 @@ requires-python = ">=3.12"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# Put the repo root on sys.path so `import app` resolves under a bare `pytest`
+# as well as `python -m pytest` (which adds the CWD implicitly).
+pythonpath = ["."]
+filterwarnings = [
+    # starlette 1.7.0, pulled in by the pinned fastapi==0.141.1, deprecates httpx
+    # for its TestClient and points at httpx2. The dependency set is frozen, so
+    # this warning can only be acknowledged here, not resolved. If the pins are
+    # ever revisited, switch to httpx2 and delete this entry. Anchored to the
+    # full message and the exact category, so any other warning still surfaces.
+    'ignore:^Using `httpx` with `starlette\.testclient` is deprecated; install `httpx2` instead\.$:starlette.exceptions.StarletteDeprecationWarning',
+]
