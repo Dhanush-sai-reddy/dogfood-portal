@@ -46,7 +46,7 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     from fastapi.staticfiles import StaticFiles
 
-    from app.routers import admin, auth, calendar, export, gallery, judge, leaderboard, projects
+    from app.routers import admin, auth, calendar, export, gallery, judge, leaderboard, projects, teams
 
     application.mount(
         "/static", StaticFiles(directory=str(REPO_ROOT / "app" / "static")), name="static"
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     application.include_router(admin.router)
     application.include_router(calendar.router)
     application.include_router(leaderboard.router)
+    application.include_router(teams.router)
     return application
 
 

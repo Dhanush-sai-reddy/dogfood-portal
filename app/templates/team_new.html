@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Create Team · DOGFOOD{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 32rem; margin: 2rem auto;">
+  <h1>🚀 Create a New Team</h1>
+  <p class="muted">Form your hackathon squad (1-4 members). You'll get an invite link to share with your teammates.</p>
+  
+  <form method="post" action="/teams/new" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+    <label>Team Name
+      <input type="text" name="name" required placeholder="e.g. Neural Ninjas">
+    </label>
+    <button type="submit">Create Team</button>
+  </form>
+
+  <hr style="border-color: var(--border); margin: 2rem 0;">
+
+  <h3>Have an invite code?</h3>
+  <form method="post" action="/teams/join" style="margin-top: 1rem; display: flex; gap: 0.75rem;">
+    <input type="text" name="invite_code" required placeholder="Enter invite code" style="flex: 1;">
+    <button type="submit" class="secondary">Join Team</button>
+  </form>
+</div>
+{% endblock %}
