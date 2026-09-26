@@ -71,10 +71,33 @@ def test_the_hashes_cover_more_than_this_machine():
     assert not single, f"hashed for a single artifact, so not portable: {single}"
 
 
+def test_requirements_in_lists_exactly_the_runtime_packages():
+    """requirements.in exists so requirements.txt can be compiled rather than
+    hand-edited, which only holds if the loose list stays loose. A pin or an
+    eighth name added here and not recompiled is drift the other tests cannot
+    see, because they all read the compiled file.
+    """
+    loose = [
+        line.strip() for line in _read("requirements.in").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert loose == sorted(RUNTIME_PACKAGES) or loose == list(RUNTIME_PACKAGES)
+    assert not [name for name in loose if "==" in name], loose
+
+
 def test_the_image_installs_by_hash_and_never_from_source():
     text = _read("Dockerfile")
     assert "--require-hashes" in text
     assert "--only-binary=:all:" in text
+
+
+def test_the_base_image_is_the_python_the_lockfile_was_compiled_for():
+    """The hashes were compiled with --python-version 3.12, so a base image on
+    another interpreter would resolve to artifacts the file does not list."""
+    base = re.search(r"^FROM\s+(\S+)", _read("Dockerfile"), re.M)
+    assert base, "the Dockerfile has no FROM"
+    # startswith, so a future digest pin (python:3.12-slim@sha256:...) passes.
+    assert base.group(1).startswith("python:3.12-slim")
 
 
 def test_the_image_runs_as_a_non_root_user_that_owns_its_data_dir():
