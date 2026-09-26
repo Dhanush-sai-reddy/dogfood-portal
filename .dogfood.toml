@@ -1,0 +1,30 @@
+# The organizer's acceptance config. Do not hand-edit the cookie values: they are
+# printed by the seeder on every boot, and tests/test_acceptance.py fails if any
+# value here is not a session the seeder actually made.
+#
+# Check it with:  python3 run.py .dogfood.toml
+
+[portal]
+base_url = "http://localhost:8080"
+
+[tiers]
+# T1 and T2 only. run.py contains no T3 or T4 checks, so claiming T3 would
+# print "claimed but not verified: T3" — an overclaim the organizer can see.
+claimed = ["T1", "T2"]
+pitch = "A seeded offline portal where the deadline really stops submissions and a judge can only ever read their own scores."
+
+[auth]
+organizer   = "Cookie: sid=tok_organizer_7f3a91c2"
+judge_a     = "Cookie: sid=tok_judge_a_91bc44de"
+judge_b     = "Cookie: sid=tok_judge_b_44de91bc"
+participant = "Cookie: sid=tok_participant_2e88prt0"
+
+[routes]
+gallery      = "/projects"
+submit       = "/projects/new"
+judge_scores = "/api/judge/scores"
+# The url that returns judge_a's scores. The checker visits it as judge_b,
+# who must be refused, so the query string has to live in this value: run.py
+# concatenates base_url + the route with no room to add parameters.
+peer_scores  = "/api/judge/scores?judge=jdg_24"
+csv_export   = "/api/export.csv"

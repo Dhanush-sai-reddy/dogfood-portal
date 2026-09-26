@@ -15,9 +15,23 @@ logger = logging.getLogger("dogfood")
 async def lifespan(application: FastAPI):
     settings: Settings = application.state.settings
     logger.info("database %s", settings.database_url)
-    from app.db import init_db
+
+    from app.db import init_db, session_scope
+    from app.seed import ensure_seeded, print_auth_headers
 
     init_db()
+    with session_scope() as db:
+        ensure_seeded(db)
+        # The spec's story: the seeder prints the logins the checker needs.
+        # Fixed tokens, so `docker compose down -v` cannot invalidate them.
+        # AMENDED IN REVIEW (task 5): printed UNCONDITIONALLY, not gated on
+        # `ensure_seeded` returning True. The Global Constraints and the
+        # organizer's `.dogfood.toml` both require the headers on EVERY boot
+        # ("your seed script prints these when the portal boots"), and the
+        # checker never logs in — it only attaches them. Gating the print
+        # silences it on exactly the second boot an operator is most likely to
+        # be reading the log for.
+        print_auth_headers()
     yield
     logger.info("stopped")
 
