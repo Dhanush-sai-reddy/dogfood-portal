@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.deps import DbSession, Judge
 from app.models import (
-    Assignment, JudgeProfile, Project, RubricCriterion, Score, utcnow,
+    Assignment, Event, JudgeProfile, Project, RubricCriterion, Score, utcnow,
 )
 from app.security import assert_same_origin
 from app.seed import DEFAULT_EVENT_ID
@@ -133,6 +133,15 @@ def my_scores(request: Request, db: DbSession, judge: Judge) -> list[ScoreOut]:
 
 @router.get("/judge")
 def console(request: Request, db: DbSession, judge: Judge) -> None:
+    event = db.get(Event, DEFAULT_EVENT_ID)
+    config = event.judging_config if event and event.judging_config else {
+        "methodology": "rubric",
+        "scale_min": 1,
+        "scale_max": 5,
+        "points_pool_total": 100,
+        "blind_judging": False,
+        "comment_required": False,
+    }
     rubric = db.scalars(
         select(RubricCriterion)
         .where(RubricCriterion.event_id == DEFAULT_EVENT_ID)
@@ -154,6 +163,7 @@ def console(request: Request, db: DbSession, judge: Judge) -> None:
         ],
         rubric=[{"key": c.key, "label": c.label, "weight": c.weight,
                  "max_score": c.max_score} for c in rubric],
+        config=config,
     )
 
 
@@ -163,11 +173,36 @@ async def save_score(request: Request, db: DbSession, judge: Judge):
     try:
         payload = ScoreIn.model_validate(await read_score_payload(request))
     except ValidationError as exc:
-        # As in `projects.py`: `detail` goes through `jsonable_encoder`, and an
-        # exception in `ctx` is a 500 waiting for the next version.
         raise HTTPException(
             status_code=422, detail=exc.errors(include_url=False, include_context=False)
         ) from exc
+
+    event = db.get(Event, DEFAULT_EVENT_ID)
+    config = event.judging_config if event and event.judging_config else {
+        "methodology": "rubric",
+        "scale_min": 1,
+        "scale_max": 5,
+        "points_pool_total": 100,
+        "blind_judging": False,
+        "comment_required": False,
+    }
+
+    # Validate against config
+    if config.get("comment_required") and not payload.comment:
+        raise HTTPException(status_code=422, detail="comment is required for submission")
+
+    scale_min = config.get("scale_min", 1)
+    scale_max = config.get("scale_max", 5)
+    methodology = config.get("methodology", "rubric")
+
+    for k, val in payload.criteria.items():
+        if not (scale_min <= val <= scale_max):
+            raise HTTPException(status_code=422, detail=f"score for {k} must be between {scale_min} and {scale_max}")
+
+    if methodology == "points_pool":
+        total_points = config.get("points_pool_total", 100)
+        if sum(payload.criteria.values()) != total_points:
+            raise HTTPException(status_code=422, detail=f"criteria scores must sum up to {total_points}")
 
     assignment = db.scalar(
         select(Assignment).where(

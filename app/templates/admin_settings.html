@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Judging Settings · DOGFOOD{% endblock %}
+{% block content %}
+<h1>Judging Configuration</h1>
+<form method="post" action="/admin/settings" class="card" style="padding: 1.5rem; max-width: 600px;">
+  <div style="margin-bottom: 1rem;">
+    <label for="methodology"><strong>Methodology</strong></label>
+    <select name="methodology" id="methodology" style="display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+      <option value="rubric" {% if config.methodology == 'rubric' %}selected{% endif %}>Standard Rubric (Weighted criteria)</option>
+      <option value="approval" {% if config.methodology == 'approval' %}selected{% endif %}>Approval / Pass-Fail (Binary)</option>
+      <option value="points_pool" {% if config.methodology == 'points_pool' %}selected{% endif %}>Points Pool Allocation</option>
+    </select>
+  </div>
+
+  <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+    <div style="flex: 1;">
+      <label for="scale_min"><strong>Minimum Score / Scale</strong></label>
+      <input type="number" name="scale_min" id="scale_min" value="{{ config.scale_min }}" style="display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+    </div>
+    <div style="flex: 1;">
+      <label for="scale_max"><strong>Maximum Score / Scale</strong></label>
+      <input type="number" name="scale_max" id="scale_max" value="{{ config.scale_max }}" style="display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+    </div>
+  </div>
+
+  <div style="margin-bottom: 1rem;" id="points-pool-group">
+    <label for="points_pool_total"><strong>Points Pool Total (for Points Pool methodology)</strong></label>
+    <input type="number" name="points_pool_total" id="points_pool_total" value="{{ config.points_pool_total }}" style="display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+  </div>
+
+  <div style="margin-bottom: 1rem;">
+    <label>
+      <input type="checkbox" name="blind_judging" value="true" {% if config.blind_judging %}checked{% endif %}>
+      <strong>Blind Judging</strong> (Hide team names and organization from judges)
+    </label>
+  </div>
+
+  <div style="margin-bottom: 1.5rem;">
+    <label>
+      <input type="checkbox" name="comment_required" value="true" {% if config.comment_required %}checked{% endif %}>
+      <strong>Mandatory Comments</strong> (Require comments for every score submission)
+    </label>
+  </div>
+
+  <button type="submit" style="padding: 0.75rem 1.5rem; background: #0066cc; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Save Settings</button>
+</form>
+<p style="margin-top: 1rem;"><a href="/admin/audit">← Back to Audit Log</a></p>
+{% endblock %}

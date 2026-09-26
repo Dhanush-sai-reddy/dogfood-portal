@@ -21,6 +21,7 @@ ROLES = ["organizer", "admin", "judge", "participant"]
 # Every task that adds a route under a guarded prefix adds its line.
 EXPECTED_ROLES: dict[str, frozenset[str]] = {
     "/admin/audit": frozenset({"organizer", "admin"}),
+    "/admin/settings": frozenset({"organizer", "admin"}),
     "/api/export": frozenset({"admin", "organizer"}),
     "/api/export.csv": frozenset({"admin", "organizer"}),
     "/api/judge/scores": frozenset({"judge"}),

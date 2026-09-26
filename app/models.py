@@ -71,6 +71,18 @@ class Event(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     submissions_close: Mapped[dt.datetime] = mapped_column(UtcDateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    judging_config: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=lambda: {
+            "methodology": "rubric",
+            "scale_min": 1,
+            "scale_max": 5,
+            "points_pool_total": 100,
+            "blind_judging": False,
+            "comment_required": False,
+        },
+    )
 
     def is_open(self, at: dt.datetime | None = None) -> bool:
         moment = at or utcnow()
