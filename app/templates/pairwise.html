@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Pairwise Arena (Elo Judging) · DOGFOOD{% endblock %}
+{% block content %}
+<div style="text-align: center; margin-bottom: 2rem;">
+  <h1>⚔️ Pairwise Comparison Arena</h1>
+  <p class="muted">Compare two projects side-by-side and vote on the superior submission. (HackMIT Gavel Mode)</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: stretch;">
+  <!-- Project A -->
+  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; border-color: rgba(56, 189, 248, 0.3);">
+    <div>
+      <div style="color: #38bdf8; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase;">Submission A</div>
+      <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">{{ project_a.title }}</h2>
+      <p style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem;">{{ project_a.summary }}</p>
+      <div class="meta" style="margin-bottom: 1.5rem;">Team: <strong>{{ team_a.name }}</strong></div>
+    </div>
+    <form method="post" action="/pairwise/vote">
+      <input type="hidden" name="project_a_id" value="{{ project_a.id }}">
+      <input type="hidden" name="project_b_id" value="{{ project_b.id }}">
+      <input type="hidden" name="winner_id" value="{{ project_a.id }}">
+      <button type="submit" style="width: 100%; background: #0284c7; font-size: 1.1rem; padding: 0.85rem;">🏆 Vote Project A Wins</button>
+    </form>
+  </div>
+
+  <!-- Project B -->
+  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; border-color: rgba(234, 179, 8, 0.3);">
+    <div>
+      <div style="color: #eab308; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase;">Submission B</div>
+      <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">{{ project_b.title }}</h2>
+      <p style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem;">{{ project_b.summary }}</p>
+      <div class="meta" style="margin-bottom: 1.5rem;">Team: <strong>{{ team_b.name }}</strong></div>
+    </div>
+    <form method="post" action="/pairwise/vote">
+      <input type="hidden" name="project_a_id" value="{{ project_a.id }}">
+      <input type="hidden" name="project_b_id" value="{{ project_b.id }}">
+      <input type="hidden" name="winner_id" value="{{ project_b.id }}">
+      <button type="submit" style="width: 100%; background: #ca8a04; font-size: 1.1rem; padding: 0.85rem;">🏆 Vote Project B Wins</button>
+    </form>
+  </div>
+</div>
+
+<div style="text-align: center; margin-top: 2.5rem;">
+  <a href="/pairwise" class="secondary" style="padding: 0.75rem 1.5rem; display: inline-block;">Skip / Compare Different Pair ➔</a>
+</div>
+{% endblock %}

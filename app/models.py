@@ -204,6 +204,18 @@ class Score(Base):
     updated_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
+class PairwiseVote(Base):
+    __tablename__ = "pairwise_votes"
+    __table_args__ = (UniqueConstraint("judge_id", "project_a_id", "project_b_id", name="uq_pairwise_vote"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    judge_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    project_a_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    project_b_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    winner_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(UtcDateTime, default=utcnow)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 

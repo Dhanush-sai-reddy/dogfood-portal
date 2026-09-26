@@ -20,6 +20,7 @@
     {% endif %}
     {% if user and user.role in ("judge", "organizer", "admin") %}
       <a href="/judge">Judging</a>
+      <a href="/pairwise">Pairwise Arena</a>
     {% endif %}
     {% if user and user.role in ("organizer", "admin") %}
       <a href="/admin/settings">Admin Settings</a>
