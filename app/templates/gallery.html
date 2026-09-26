@@ -2,7 +2,10 @@
 {% block title %}Gallery · DOGFOOD{% endblock %}
 {% block content %}
 <h1>Projects</h1>
-<form class="filters" method="get" action="/projects" role="search">
+<form class="filters" method="get" action="/projects" role="search"
+      hx-get="/projects" hx-target="next #results" hx-select="#results" hx-swap="outerHTML"
+      hx-trigger="input changed delay:300ms from:find input, change from:find select, submit"
+      hx-push-url="true" hx-indicator="#spinner">
   <label>Search
     <input type="search" name="q" value="{{ q }}" placeholder="title, summary or team">
   </label>
@@ -15,25 +18,28 @@
     </select>
   </label>
   <button type="submit">Filter</button>
+  <span id="spinner" class="muted htmx-indicator">updating…</span>
 </form>
-<p class="muted">{{ total }} project{{ '' if total == 1 else 's' }}</p>
-<ul class="cards">
-  {% for row in rows %}
-    <li class="card">
-      <h2><a href="/projects/{{ row.id }}">{{ row.title }}</a></h2>
-      <p>{{ row.summary }}</p>
-      <p class="meta">{{ row.team_name }} · {{ row.track_name }}</p>
-    </li>
-  {% endfor %}
-</ul>
-{% if total > page_size %}
-  <nav class="pager">
-    {% if start > 0 %}
-      <a href="/projects?q={{ q|urlencode }}&amp;track={{ track|urlencode }}&amp;page={{ page - 1 }}">Previous</a>
-    {% endif %}
-    {% if start + page_size < total %}
-      <a href="/projects?q={{ q|urlencode }}&amp;track={{ track|urlencode }}&amp;page={{ page + 1 }}">Next</a>
-    {% endif %}
-  </nav>
-{% endif %}
+<div id="results">
+  <p class="muted">{{ total }} project{{ '' if total == 1 else 's' }}</p>
+  <ul class="cards">
+    {% for row in rows %}
+      <li class="card">
+        <h2><a href="/projects/{{ row.id }}">{{ row.title }}</a></h2>
+        <p>{{ row.summary }}</p>
+        <p class="meta">{{ row.team_name }} · {{ row.track_name }}</p>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if total > page_size %}
+    <nav class="pager">
+      {% if start > 0 %}
+        <a href="/projects?q={{ q|urlencode }}&amp;track={{ track|urlencode }}&amp;page={{ page - 1 }}">Previous</a>
+      {% endif %}
+      {% if start + page_size < total %}
+        <a href="/projects?q={{ q|urlencode }}&amp;track={{ track|urlencode }}&amp;page={{ page + 1 }}">Next</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+</div>
 {% endblock %}

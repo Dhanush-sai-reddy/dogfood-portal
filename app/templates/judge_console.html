@@ -25,11 +25,13 @@
         <td><input form="f-{{ row.project_id }}" type="text" name="comment"
                    value="{{ row.comment or '' }}"></td>
         <td>
-          <form method="post" action="/judge/score" id="f-{{ row.project_id }}">
+          <form method="post" action="/judge/score" id="f-{{ row.project_id }}"
+                hx-post="/judge/score" hx-trigger="change from:closest tr, submit" hx-swap="none"
+                hx-indicator="closest td" hx-sync="closest form:replace">
             <input type="hidden" name="project_id" value="{{ row.project_id }}">
             <button type="submit">Save</button>
           </form>
-          <span class="meta">{{ row.status }}</span>
+          <span class="meta">{{ row.status }}<span class="saving"> · saving…</span></span>
         </td>
       </tr>
     {% endfor %}
