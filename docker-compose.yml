@@ -1,0 +1,33 @@
+# `docker compose up` and nothing else: one container, one volume, seeded from
+# the fixtures.json inside the image.
+services:
+  portal:
+    build: .
+    image: dogfood-portal:local
+    container_name: dogfood-portal
+    ports:
+      # localhost only. Never internal: true — it silently kills published ports.
+      - "127.0.0.1:${PORT:-8080}:8080"
+    environment:
+      DOGFOOD_DATABASE_URL: sqlite+pysqlite:////data/dogfood.db
+      DOGFOOD_FIXTURES: /app/fixtures.json
+      DOGFOOD_HOST: 0.0.0.0
+      DOGFOOD_PORT: "8080"
+    volumes:
+      - dogfood-data:/data
+    # A crash loop with unless-stopped still shows as "Up" and hides a broken
+    # boot. "no" plus a healthcheck makes `up -d --wait` fail loudly instead.
+    restart: "no"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  dogfood-data:
