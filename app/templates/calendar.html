@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Schedule & Calendar · DOGFOOD{% endblock %}
+{% block content %}
+<h1>Hackathon Schedule</h1>
+<p class="muted">Key milestones and timeline for {{ event.name if event else 'the event' }}.</p>
+<ul style="list-style: none; padding: 0; margin-top: 2rem;">
+  {% for m in milestones %}
+    <li class="card" style="padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #0066cc;">
+      <strong>{{ m.title }}</strong>
+      <div class="meta" style="margin-top: 0.25rem;">🕒 {{ m.time }}</div>
+      <p style="margin-top: 0.5rem; margin-bottom: 0;">{{ m.desc }}</p>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

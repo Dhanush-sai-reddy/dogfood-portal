@@ -13,6 +13,7 @@
   <a class="brand" href="/projects">DOGFOOD</a>
   <nav>
     <a href="/projects">Gallery</a>
+    <a href="/calendar">Schedule</a>
     {% if user and user.role in ("participant", "organizer", "admin") %}
       <a href="/projects/new">Submit</a>
     {% endif %}
