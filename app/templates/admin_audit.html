@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Audit log · DOGFOOD{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="muted">{{ total }} entr{{ 'y' if total == 1 else 'ies' }}, newest first. The table is
+   append-only at the database level — an UPDATE or DELETE on it raises — so this page can
+   only ever grow, and the fixtures' own import is not in here.</p>
+<form class="filters" method="get" action="/admin/audit">
+  <label>Actor
+    <input type="text" name="actor" value="{{ actor }}" placeholder="jdg_24">
+  </label>
+  <label>Action
+    <select name="action">
+      <option value="">Any</option>
+      {% for value in actions %}
+        <option value="{{ value }}" {% if action == value %}selected{% endif %}>{{ value }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Entity
+    <input type="text" name="entity_type" value="{{ entity_type }}" placeholder="projects">
+  </label>
+  <button type="submit">Filter</button>
+</form>
+<table class="grid">
+  <thead>
+    <tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Before</th><th>After</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <td class="meta">{{ row.created_at }}</td>
+        <td>{{ row.actor_id or 'system' }}</td>
+        <td>{{ row.action }}</td>
+        <td class="meta">{{ row.entity_type }}/{{ row.entity_id }}</td>
+        <td><code class="diff">{{ row.before_json or '' }}</code></td>
+        <td><code class="diff">{{ row.after_json or '' }}</code></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Nothing logged yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if total > page_size %}
+  <nav class="pager">
+    {% if page > 1 %}
+      <a href="/admin/audit?page={{ page - 1 }}&amp;actor={{ actor|urlencode }}&amp;action={{ action|urlencode }}&amp;entity_type={{ entity_type|urlencode }}">Previous</a>
+    {% endif %}
+    {% if page * page_size < total %}
+      <a href="/admin/audit?page={{ page + 1 }}&amp;actor={{ actor|urlencode }}&amp;action={{ action|urlencode }}&amp;entity_type={{ entity_type|urlencode }}">Next</a>
+    {% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

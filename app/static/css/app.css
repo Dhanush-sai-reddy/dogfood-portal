@@ -22,3 +22,8 @@ button { cursor: pointer; }
 .grid { width: 100%; border-collapse: collapse; }
 .grid caption { text-align: left; padding-bottom: .5rem; }
 .grid th, .grid td { border-bottom: 1px solid var(--line); padding: .4rem .5rem; text-align: left; vertical-align: top; }
+.diff { font-size: .78rem; word-break: break-all; opacity: .8; }
+.saving { visibility: hidden; }
+.htmx-request .saving { visibility: visible; }
+.htmx-indicator { opacity: 0; transition: opacity .15s ease-in; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }

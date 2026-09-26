@@ -11,6 +11,7 @@ from pathlib import Path
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.audit import seed_session
 from app.config import Settings
 from app.models import (
     Assignment, Event, JudgeProfile, Project, RubricCriterion, Score, SeedState,
@@ -87,6 +88,7 @@ def apply_reference_data(db: Session, fixture: dict) -> None:
     foreign key. `merge` is an upsert, which is what lets a second call be a
     no-op instead of a unique-constraint violation.
     """
+    seed_session(db)
     event = fixture["event"]
     db.merge(
         Event(
@@ -287,6 +289,7 @@ def augment_assignments(
     capacity: int = DEFAULT_CAPACITY,
     seed: int = ASSIGNMENT_SEED,
 ) -> AssignmentReport:
+    seed_session(db)
     problems = assignment_feasibility(
         db, reviews_per_project=reviews_per_project, capacity=capacity
     )

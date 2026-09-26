@@ -13,6 +13,8 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings
 from app.models import AUDIT_TRIGGERS, SCHEMA_VERSION, Base, SeedState
 
+import app.audit  # noqa: F401  - registers the before_flush audit listener
+
 logger = logging.getLogger("dogfood")
 
 
@@ -52,13 +54,11 @@ def create_engine_for_tests() -> tuple[Engine, sessionmaker[Session]]:
         future=True,
     )
     event.listen(test_engine, "connect", configure_sqlite)
-    # The trigger DDL needs `audit_log` to exist first, and it is repeated from
-    # `init_db` rather than shared: a named installer belongs to the task that
-    # formalises it, not to this harness.
+    # The trigger DDL needs `audit_log` to exist first, and it is installed
+    # through the same named installer `init_db` uses, so the harness hands back
+    # production's protection rather than a copy of it.
     Base.metadata.create_all(test_engine)
-    with test_engine.begin() as conn:
-        for statement in AUDIT_TRIGGERS:
-            conn.execute(text(statement))
+    install_audit_triggers(test_engine)
     return test_engine, sessionmaker(bind=test_engine, autoflush=False, expire_on_commit=False)
 
 
@@ -86,11 +86,15 @@ def session_scope() -> Iterator[Session]:
         db.close()
 
 
-def init_db() -> None:
-    Base.metadata.create_all(engine)
-    with engine.begin() as conn:
+def install_audit_triggers(target_engine: Engine) -> None:
+    with target_engine.begin() as conn:
         for statement in AUDIT_TRIGGERS:
             conn.execute(text(statement))
+
+
+def init_db() -> None:
+    Base.metadata.create_all(engine)
+    install_audit_triggers(engine)
     with SessionLocal() as db:
         row = db.get(SeedState, "schema_version")
         if row is None:

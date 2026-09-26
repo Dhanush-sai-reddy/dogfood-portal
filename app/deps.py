@@ -24,6 +24,9 @@ def require_user(request: Request, db: DbSession) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="authentication required",
         )
+    # The audit listener reads this; every mutation route is role-guarded, so
+    # every audited write gets an actor from here.
+    db.info["actor_id"] = user.id
     return user
 
 
