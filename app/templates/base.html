@@ -43,5 +43,20 @@
 <footer class="foot">Sample Hack 2026 · seeded from fixtures.json</footer>
 </div>
 <script src="/static/js/htmx.min.js" defer></script>
+<script>
+document.addEventListener('htmx:responseError', function(evt) {
+  const xhr = evt.detail.xhr;
+  let msg = "An error occurred (" + xhr.status + ")";
+  try {
+    const data = JSON.parse(xhr.responseText);
+    if (data.detail) msg = data.detail;
+  } catch(e) {
+    if (xhr.responseText && xhr.responseText.length < 200 && !xhr.responseText.includes("<!doctype")) {
+      msg = xhr.responseText;
+    }
+  }
+  alert(msg);
+});
+</script>
 </body>
 </html>

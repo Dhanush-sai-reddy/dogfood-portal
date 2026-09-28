@@ -11,7 +11,7 @@ base_url = "http://localhost:8080"
 # T1 and T2 only. run.py contains no T3 or T4 checks, so claiming T3 would
 # print "claimed but not verified: T3" — an overclaim the organizer can see.
 claimed = ["T1", "T2"]
-pitch = "A seeded offline portal where the deadline really stops submissions and a judge can only ever read their own scores."
+pitch = "A highly configurable offline portal featuring weighted rubrics, blind judging, point pools, immutable audit logs, and strict role isolation."
 
 [auth]
 organizer   = "Cookie: sid=tok_organizer_7f3a91c2"
